@@ -72,9 +72,14 @@ body {
     color: rgb(235, 235, 235);
 }
 
+.loading {
+    flex: 0 !important
+}
+
 .total-progress p {
     font-size: 1.2em;
     margin: 5px 0;
+    flex: 1;
 }
 
 /* Progress bar container */
@@ -395,7 +400,7 @@ body {
     opacity: 1;
 }
 
-.today-count {
+.today-count, .total-count {
     font-size: 1.2em;
     margin: 5px 0;
     color: #76c7c0;
@@ -406,7 +411,7 @@ body {
     overflow: hidden;
 }
 
-.today-count span {
+.today-count span, .total-count span {
     position: absolute;
     left: 0;
     right: 0;
@@ -774,4 +779,11 @@ footer a:hover {
     .main-progress .progress {
         animation: none;
     }
+}
+.today-container, .total-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
 }

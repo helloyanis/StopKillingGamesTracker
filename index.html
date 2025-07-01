@@ -33,12 +33,17 @@
         </ul>
     </nav>
     <div class="title">Stop Killing Games progress tracker</div>
-    <div class="image"><img src="images/Stopkillinggames.jpeg" alt="Stop Killing Games Logo"></div>
     <div class="progressContainer">
         <div class="total-progress">
             <h2>Total Progress</h2>
-            <p class="total-count">Loading total signature count...</p>
-            <p class="today-count">Loading today's signatures...</p>
+            <span class="total-container">
+                <p class="total-label loading"></p>
+                <p class="total-count">Loading total signature count...</p>
+            </span>
+            <span class="today-container">
+                <p class="today-label loading"></p>
+                <p class="today-count">Loading today's signatures (If many people are connected, this can take a while!)</p>
+            </span>
             <p class="percentage-to-goal"></p>
             <div class="progress-bar">
                 <div class="progress" style="width: 0%"></div>
@@ -56,12 +61,6 @@
             </h3>
             <h3 class="daily-signatures-needed">
             </h3>
-        </div>
-    </div>
-    <div class="threshold-progress-container">
-        <h2 class="">Minimum Threshold Progress</h2>
-        <div class="threshold-progress">
-            <div class="threshold-progress-bar"></div>
         </div>
     </div>
     <a class="SignContainer" href="https://eci.ec.europa.eu/045/public/#/screen/home"><button class="SignButton">Sign

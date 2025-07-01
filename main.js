@@ -81,23 +81,6 @@ function fetchFlagUrl(countryName) {
             return null;
         });
 }
-
-function updateThresholdProgress(countries) {
-    const thresholdCount = countries.filter(country => country.percentage >= 100).length;
-    const parentDiv = document.querySelector('.threshold-progress');
-    parentDiv.innerHTML = ''; // Clear existing segments
-
-    for (let i = 0; i < 7; i++) {
-        const segment = document.createElement('div');
-        segment.className = 'threshold-progress-segment';
-        if (i < thresholdCount) {
-            segment.style.backgroundColor = '#76c7c0';
-        } else {
-            segment.style.backgroundColor = '#e0e0e0';
-        }
-        parentDiv.appendChild(segment);
-    }
-}
 // Function to display countries
 function displayCountries(countries, showUpdateMessage = false) {
     const parentDiv = document.getElementById('myDiv');
@@ -381,7 +364,6 @@ function displayCountries(countries, showUpdateMessage = false) {
             // Append the new div element to the parent div
             parentDiv.appendChild(div);
         });
-        updateThresholdProgress(countriesWithFlags);
     });
 }
 
@@ -691,10 +673,10 @@ document.getElementById('sortPerCapitaDesc').addEventListener('click', () => {
 });
 
 // Function to fetch and update total progress data
-function updateTotalProgress() {
-    fetch('https://eci.ec.europa.eu/045/public/api/report/progression')
-        .then(response => response.json())
-        .then(data => {
+async function updateTotalProgress() {
+    while(true) {
+    const response = await fetch('https://eci.ec.europa.eu/045/public/api/report/progression')
+    const data = await  response.json()
             const { signatureCount, goal } = data;
             if(signatureCount >= goal){
                 displayFireworks();
@@ -705,14 +687,43 @@ function updateTotalProgress() {
             //Display confetti when a signature is added
             if (previousSignatureCount < signatureCount && previousSignatureCount !== 0) {
                 // Also update today's count when new signatures come in, but don't show loading message
-                fetchTodaySignatures(false);
             }
 
-            previousSignatureCount = signatureCount;
-
             // Update the total progress div with the calculated values
-            if(document.querySelector('.total-count').innerText != `Total Count: ${signatureCount.toLocaleString()}`){
-                document.querySelector('.total-count').innerText = `Total Count: ${signatureCount.toLocaleString()}`;
+            if(document.querySelector('.total-label').innerText != `Total Signatures:`){
+                document.querySelector('.total-label').innerText = `Total Signatures:`;
+                document.querySelector('.total-label').classList.remove('loading');
+            }
+            if(document.querySelector('.total-count').innerText != `${signatureCount.toLocaleString()}`){
+                // Update the UI with animation if it's different
+                document.querySelector('.total-count').innerHTML = ``;
+                const oldCount = document.createElement('span');
+                oldCount.className = 'count-down';
+                oldCount.textContent = `${previousSignatureCount.toLocaleString()}`;
+                const newCount = document.createElement('span');
+                newCount.className = 'count-up';
+                newCount.textContent = `${signatureCount.toLocaleString()}`;
+                document.querySelector('.total-count').appendChild(oldCount);
+                document.querySelector('.total-count').appendChild(newCount);
+                // Trigger the animation after a brief delay
+                setTimeout(() => {
+                    oldCount.style.transform = 'translateY(-100%)';
+                    oldCount.style.opacity = '0';
+                    newCount.style.transform = 'translateY(0)';
+                    newCount.style.opacity = '1';
+                }, 10);
+                
+                // Clean up after animation completes
+                setTimeout(() => {
+                    // Replace with a simple text to avoid positioning issues
+                    document.querySelector('.total-count').innerHTML = '';
+                    const finalElement = document.createElement('span');
+                    finalElement.className = 'count-down'; // Already in correct position
+                    finalElement.textContent = `${signatureCount.toLocaleString()}`;
+                    document.querySelector('.total-count').appendChild(finalElement);
+                }, 600);
+                //Wait for animation to finish before retrying
+                await new Promise(resolve => setTimeout(resolve, 710));
             }
 
             if(document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage.toLocaleString()}%`){
@@ -722,8 +733,8 @@ function updateTotalProgress() {
             if(document.querySelector('.total-progress').querySelector('.progress').style.width != `${percentage}%`){
                 document.querySelector('.total-progress').querySelector('.progress').style.width = `${percentage}%`;
             }
-        })
-        .catch(error => console.error('Error:', error));
+            previousSignatureCount = signatureCount;
+    }
 }
 
 function updateTimeLeft(startTime, endTime) {
@@ -754,14 +765,10 @@ function updateTimeLeft(startTime, endTime) {
 }
 
 // Function to fetch historical data and calculate today's signatures
-async function fetchTodaySignatures(showLoadingMessage = true) {
+async function fetchTodaySignatures() {
+    while(true) {
     try {
         const todayCountElement = document.querySelector('.today-count');
-        
-        // Only show loading message on initial load, not during updates
-        if (showLoadingMessage && !todayCountElement.dataset.hasValue) {
-            todayCountElement.textContent = 'Calculating today\'s signatures...';
-        }
         
         // Get current total from main API first
         const currentResponse = await fetch('https://eci.ec.europa.eu/045/public/api/report/progression');
@@ -812,12 +819,12 @@ async function fetchTodaySignatures(showLoadingMessage = true) {
                     // Create a temporary element to animate out
                     const oldCount = document.createElement('span');
                     oldCount.className = 'count-down';
-                    oldCount.textContent = `Signatures today: +${prevValue.toLocaleString()}`;
+                    oldCount.textContent = `${prevValue.toLocaleString()}`;
                     
                     // Create a new element to animate in
                     const newCount = document.createElement('span');
                     newCount.className = 'count-up';
-                    newCount.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
+                    newCount.textContent = `${todaySignatures.toLocaleString()}`;
                     
                     // Add both elements to container
                     todayCountElement.appendChild(oldCount);
@@ -837,7 +844,7 @@ async function fetchTodaySignatures(showLoadingMessage = true) {
                         todayCountElement.innerHTML = '';
                         const finalElement = document.createElement('span');
                         finalElement.className = 'count-down'; // Already in correct position
-                        finalElement.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
+                        finalElement.textContent = `${todaySignatures.toLocaleString()}`;
                         todayCountElement.appendChild(finalElement);
                     }, 600);
                 } else {
@@ -845,8 +852,10 @@ async function fetchTodaySignatures(showLoadingMessage = true) {
                     todayCountElement.innerHTML = '';
                     const textElement = document.createElement('span');
                     textElement.className = 'count-down';
-                    textElement.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
+                    textElement.textContent = `${todaySignatures.toLocaleString()}`;
                     todayCountElement.appendChild(textElement);
+                    document.querySelector(".today-label").classList.remove('loading');
+                    document.querySelector(".today-label").textContent = "Today's Signatures:";
                 }
                 
                 // Add visual indicator based on activity level
@@ -859,27 +868,20 @@ async function fetchTodaySignatures(showLoadingMessage = true) {
             }
         } else {
             console.error('No previous entries found to calculate today\'s signatures');
-            if (showLoadingMessage) {
-                todayCountElement.textContent = 'Could not calculate today\'s signatures';
-            }
+            todayCountElement.textContent = 'Could not calculate today\'s signatures';
+            
         }
     } catch (error) {
         console.error('Error calculating today\'s signatures:', error);
         const todayCountElement = document.querySelector('.today-count');
-        if (showLoadingMessage) {
-            todayCountElement.textContent = 'Could not load today\'s signatures';
-        }
+        todayCountElement.textContent = 'Could not load today\'s signatures';
     }
+    //Wait a second before retrying
+    await new Promise(resolve => setTimeout(resolve, 1000));
+}
 }
 
-// Call this function when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Fetch today's signatures after a short delay to ensure other APIs load first
-    setTimeout(fetchTodaySignatures, 1000);
-});
-
-// Also update it periodically (every 5 minutes)
-setInterval(() => fetchTodaySignatures(false), 5 * 60 * 1000);
+fetchTodaySignatures(true); // Start fetching today's signatures with loading message
 
 // Fetch and display country data
 fetch('https://stopkillinggamesdata.montoria.se/')
@@ -937,8 +939,6 @@ let previousSignatureCount = 0;
 // Initial fetch and update of total progress data
 updateTotalProgress();
 
-// Set interval to update total progress data every 3 seconds
-setInterval(()=> updateTotalProgress(), 3000);
 
 //Update time left every second
 const startTime = new Date('31 jul 2024 GMT+0200');
