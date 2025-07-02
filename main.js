@@ -675,6 +675,7 @@ document.getElementById('sortPerCapitaDesc').addEventListener('click', () => {
 // Function to fetch and update total progress data
 async function updateTotalProgress() {
     while(true) {
+        try{
     const response = await fetch('https://eci.ec.europa.eu/045/public/api/report/progression')
     const data = await  response.json()
             const { signatureCount, goal } = data;
@@ -682,11 +683,12 @@ async function updateTotalProgress() {
                 displayFireworks();
             }
             // Calculate the percentage towards the goal
-            const percentage = ((signatureCount / goal) * 100).toFixed(2);
+            const percentage1 = ((signatureCount / goal) * 100).toFixed(2);
 
-            //Display confetti when a signature is added
+            const percentage2 = (((signatureCount-1000000) / 1000000) * 100).toFixed(2);
+
             if (previousSignatureCount < signatureCount && previousSignatureCount !== 0) {
-                // Also update today's count when new signatures come in, but don't show loading message
+                fetchTodaySignatures();
             }
 
             // Update the total progress div with the calculated values
@@ -695,48 +697,40 @@ async function updateTotalProgress() {
                 document.querySelector('.total-label').classList.remove('loading');
             }
             if(document.querySelector('.total-count').innerText != `${signatureCount.toLocaleString()}`){
-                // Update the UI with animation if it's different
-                document.querySelector('.total-count').innerHTML = ``;
-                const oldCount = document.createElement('span');
-                oldCount.className = 'count-down';
-                oldCount.textContent = `${previousSignatureCount.toLocaleString()}`;
-                const newCount = document.createElement('span');
-                newCount.className = 'count-up';
-                newCount.textContent = `${signatureCount.toLocaleString()}`;
-                document.querySelector('.total-count').appendChild(oldCount);
-                document.querySelector('.total-count').appendChild(newCount);
-                // Trigger the animation after a brief delay
-                setTimeout(() => {
-                    oldCount.style.transform = 'translateY(-100%)';
-                    oldCount.style.opacity = '0';
-                    newCount.style.transform = 'translateY(0)';
-                    newCount.style.opacity = '1';
-                }, 10);
-                
-                // Clean up after animation completes
-                setTimeout(() => {
-                    // Replace with a simple text to avoid positioning issues
-                    document.querySelector('.total-count').innerHTML = '';
-                    const finalElement = document.createElement('span');
-                    finalElement.className = 'count-down'; // Already in correct position
-                    finalElement.textContent = `${signatureCount.toLocaleString()}`;
-                    document.querySelector('.total-count').appendChild(finalElement);
-                }, 600);
-                //Wait for animation to finish before retrying
-                await new Promise(resolve => setTimeout(resolve, 710));
+                await updateCountUI(signatureCount, previousSignatureCount, document.querySelector('.total-count'));
             }
 
-            if(document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage.toLocaleString()}%`){
-                document.querySelector('.percentage-to-goal').innerText = `Percentage to Goal: ${percentage.toLocaleString()}%`;
-            }
+            if(percentage1 > 100){
+                if(document.querySelector('.percentage-to-goal').innerText != `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`){
+                    document.querySelector('.percentage-to-goal').innerText = `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`;
+                }
 
-            if(document.querySelector('.total-progress').querySelector('.progress').style.width != `${percentage}%`){
-                document.querySelector('.total-progress').querySelector('.progress').style.width = `${percentage}%`;
+                if(document.querySelector('.total-progress').querySelector('.progress').style.width != `100%`){
+                    document.querySelector('.total-progress').querySelector('.progress').style.width = `100%`;
+                }
+                if(document.querySelector('.total-progress').querySelector('.extra-progress').style.width != `${percentage2}%`){
+                    document.querySelector('.total-progress').querySelector('.extra-progress').style.width = `${percentage2}%`;
+                }
             }
+            else{
+                if(document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage1.toLocaleString()}%`){
+                    document.querySelector('.percentage-to-goal').innerText = `Percentage to Goal: ${percentage1.toLocaleString()}%`;
+                }
+
+                if(document.querySelector('.total-progress').querySelector('.progress').style.width != `${percentage1}%`){
+                    document.querySelector('.total-progress').querySelector('.progress').style.width = `${percentage1}%`;
+                }
+            }
+            
             previousSignatureCount = signatureCount;
-    }
+    } catch (error) {
+    console.error('Error fetching total progress:', error);
+}
+}
 }
 
+let globalScheduleStatus = '';
+let globalProjectedDate = new Date();
 function updateTimeLeft(startTime, endTime) {
     const now = new Date();
     const timeLeft = endTime - now;
@@ -750,9 +744,8 @@ function updateTimeLeft(startTime, endTime) {
         document.querySelector('.time-left').querySelector('.progress-danger').style.width = `${100 - (timeLeft / (endTime - startTime)) * 100}%`;
     }
 
-    if(document.querySelector('.schedule-status').innerText != document.querySelector('.total-progress').querySelector('.progress').style.width > 100 - (timeLeft / (endTime - startTime)) * 100? `We're ahead of schedule!`:  `We're behind schedule!`){
-        document.querySelector('.schedule-status').innerText = document.querySelector('.total-progress').querySelector('.progress').style.width > 100 - (timeLeft / (endTime - startTime)) * 100? `We're ahead of schedule!`:  `We're behind schedule!`;
-    }
+    document.querySelector('.schedule-status').innerText = globalScheduleStatus;
+    
     
     if(document.querySelector('.daily-signatures-needed').innerText = `We need at least ${Math.ceil((1000000-previousSignatureCount)/daysLeft)} signatures per day on average!`){
         document.querySelector('.daily-signatures-needed').innerText = `We need at least ${Math.ceil((1000000-previousSignatureCount)/daysLeft)} signatures per day on average!`;
@@ -763,63 +756,82 @@ function updateTimeLeft(startTime, endTime) {
         animIndex = 0;
     }
 }
-
+let signaturesBeforeToday = 0;
+let historicData
+let prevValueTotal = 0;
+let prevValueToday = 0;
+//Once every 10 minutes, refresh the historical data
+setInterval(() => {
+    fetch('https://stopkillinggameshistoricdata.montoria.se/historic-data')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Updated historical data:', data);
+            historicData.length = 0; // Clear the existing array
+            historicData.push(...data); // Add the new data
+        })
+        .catch(error => console.error('Error fetching historical data:', error));
+}, 10 * 60 * 1000); // 10 minutes in milliseconds
 // Function to fetch historical data and calculate today's signatures
 async function fetchTodaySignatures() {
-    while(true) {
-    try {
-        const todayCountElement = document.querySelector('.today-count');
-        
-        // Get current total from main API first
-        const currentResponse = await fetch('https://eci.ec.europa.eu/045/public/api/report/progression');
-        const currentData = await currentResponse.json();
-        const currentTotal = currentData.signatureCount;
-        
-        // Now get historical data
-        const response = await fetch('https://stopkillinggameshistoric-3a5f498bc1f0.herokuapp.com/historic-data');
-        let historicData = await response.json();
-        
-        // Sort data by timestamp in descending order (newest first)
-        historicData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
-        // Find most recent entry that's not from today
+        try{
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        
-        // Filter out entries from today
-        const previousEntries = historicData.filter(entry => {
-            const entryDate = new Date(entry.timestamp);
-            return entryDate < today;
-        });
-        
-        if (previousEntries.length > 0) {
-            // Get the most recent entry before today
-            const mostRecentEntry = previousEntries[0];
-            
-            // Calculate total signatures from that entry
-            const previousTotal = mostRecentEntry.data.reduce((sum, country) => sum + country.totalCount, 0);
-            
-            // Calculate signatures added today
-            const todaySignatures = currentTotal - previousTotal;
-            
-            // Get previous value for animation
-            const prevValue = parseInt(todayCountElement.dataset.value) || 0;
-            
-            // Update the UI with animation if it's different
-            if (todaySignatures !== prevValue) {
-                // Store the new value as a data attribute
-                todayCountElement.dataset.value = todaySignatures;
-                todayCountElement.dataset.hasValue = 'true';
-                
-                // Create and show the updated count with animation
-                if (prevValue > 0) {
+
+        // Find latest entry before today
+        const latestHistoricalEntry = historicData
+            .filter(entry => new Date(entry.timestamp) < today)
+            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+        if (!latestHistoricalEntry) {
+            globalScheduleStatus = 'Insufficient historical data.';
+            return;
+        }
+
+        // Sum totalCount from the latest historical day
+        const totalBeforeToday = latestHistoricalEntry.data.reduce((sum, country) => sum + country.totalCount, 0);
+
+        // Fetch live current total from the second endpoint
+        const currentTotal = previousSignatureCount
+
+        const todaySignatures = currentTotal - totalBeforeToday;
+
+        if (todaySignatures < 0) {
+            console.warn("Signature count went backwards, likely a data error.");
+        }
+
+        // Do your projection & animation updates here
+        await updateCountUI(todaySignatures, prevValueToday, document.querySelector('.today-count'));
+        prevValueToday = todaySignatures; // Update the previous value for next comparison
+
+        const rate = getYesterdaySignaturesRate();
+  if (rate <= 0) {
+    globalScheduleStatus = 'Cannot compute projection from yesterday’s data.';
+    return;
+  }
+
+  // days until goal at yesterday’s pace:
+  const daysToGo = Math.ceil((1000000 - previousSignatureCount) / rate);
+  const projectedDate = new Date(now.getTime() + daysToGo * 24*60*60*1000);
+
+  globalProjectedDate = projectedDate;
+  globalScheduleStatus = 
+    `At yesterday’s rate (${rate.toLocaleString()}⎯signatures), `
+    + `you’ll hit goal in ${daysToGo} days (by ${projectedDate.toLocaleDateString()}).`;
+        } catch (error) {
+            console.error('Error fetching today\'s signatures:', error);
+        }
+}
+
+async function updateCountUI(todaySignatures, prev, element) {// Create and show the updated count with animation
+    const todayCountElement = element
+                if (prev > 0) {
                     // Remove any existing content
                     todayCountElement.innerHTML = '';
                     
                     // Create a temporary element to animate out
                     const oldCount = document.createElement('span');
                     oldCount.className = 'count-down';
-                    oldCount.textContent = `${prevValue.toLocaleString()}`;
+                    oldCount.textContent = `${prev.toLocaleString()}`;
                     
                     // Create a new element to animate in
                     const newCount = document.createElement('span');
@@ -847,6 +859,8 @@ async function fetchTodaySignatures() {
                         finalElement.textContent = `${todaySignatures.toLocaleString()}`;
                         todayCountElement.appendChild(finalElement);
                     }, 600);
+                    //better function, in async
+                    await new Promise(resolve => setTimeout(resolve, 610));
                 } else {
                     // First load, just set the text
                     todayCountElement.innerHTML = '';
@@ -866,22 +880,39 @@ async function fetchTodaySignatures() {
                     todayCountElement.classList.add('medium-activity');
                 }
             }
-        } else {
-            console.error('No previous entries found to calculate today\'s signatures');
-            todayCountElement.textContent = 'Could not calculate today\'s signatures';
-            
-        }
-    } catch (error) {
-        console.error('Error calculating today\'s signatures:', error);
-        const todayCountElement = document.querySelector('.today-count');
-        todayCountElement.textContent = 'Could not load today\'s signatures';
-    }
-    //Wait a second before retrying
-    await new Promise(resolve => setTimeout(resolve, 1000));
-}
+
+// Helper: get the totalCount sum for a given date (midnight–midnight)
+function totalForDate(date) {
+  // find the entry whose timestamp is exactly that date (or closest before)
+  const entry = historicData
+    .filter(e => {
+      const d = new Date(e.timestamp);
+      return d.getFullYear() === date.getFullYear()
+          && d.getMonth() === date.getMonth()
+          && d.getDate() === date.getDate();
+    })
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) [0];
+
+  if (!entry) return null;
+  return entry.data.reduce((sum, c) => sum + c.totalCount, 0);
 }
 
-fetchTodaySignatures(true); // Start fetching today's signatures with loading message
+// New function to compute yesterday’s rate
+function getYesterdaySignaturesRate() {
+  const now = new Date();
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  const dayBefore = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+
+  const totalDayBefore = totalForDate(dayBefore);
+  const totalYesterday   = totalForDate(yesterday);
+
+  if (totalDayBefore == null || totalYesterday == null) {
+    console.warn('Not enough historical data for yesterday rate');
+    return null;
+  }
+
+  return totalYesterday - totalDayBefore;
+}
 
 // Fetch and display country data
 fetch('https://stopkillinggamesdata.montoria.se/')
@@ -896,6 +927,54 @@ fetch('https://stopkillinggamesdata.montoria.se/')
         displayCountries(sortedCountries);
     })
     .catch(error => console.error('Error:', error));
+
+    /**
+ * Calculates the projected date to reach a signature goal.
+ *
+ * @param {Date} startDate The date from which to start projecting (e.g., today's date or yesterday's date).
+ * @param {number} currentSignatures The current total number of signatures.
+ * @param {number} targetGoal The total number of signatures to reach.
+ * @param {number} dailyVelocity The average number of signatures collected per day.
+ * @returns {Date | null} The projected Date object, or null if there's an error in inputs.
+ */
+function getProjectedFinalDate(startDate, currentSignatures, targetGoal, dailyVelocity) {
+    if(currentSignatures >= targetGoal) {
+        console.warn("Current signatures already meet or exceed the target goal.");
+        return null; // No projection needed if goal is already met
+    }
+    // Input validation
+    if (!(startDate instanceof Date) || isNaN(startDate.getTime())) { // Check if it's a valid Date object
+        console.error("Error: 'startDate' must be a valid Date object.");
+        return null;
+    }
+    if (typeof currentSignatures !== 'number' || currentSignatures < 0) {
+        console.error("Error: 'currentSignatures' must be a non-negative number.");
+        return null;
+    }
+    if (typeof targetGoal !== 'number' || targetGoal <= currentSignatures) {
+        console.error("Error: 'targetGoal' must be a number greater than 'currentSignatures'.");
+        return null;
+    }
+    if (typeof dailyVelocity !== 'number' || dailyVelocity <= 0) {
+        console.error("Error: 'dailyVelocity' must be a positive number.");
+        return null;
+    }
+
+    // 1. Calculate signatures remaining
+    const signaturesRemaining = targetGoal - currentSignatures;
+
+    // 2. Calculate the number of days needed (round up to ensure goal is met)
+    const daysNeeded = Math.ceil(signaturesRemaining / dailyVelocity);
+
+    // 3. Create a new Date object from the start date to avoid modifying the original
+    const projectedDate = new Date(startDate);
+
+    // 4. Add the calculated days to the new date object
+    // setDate() handles month and year rollovers automatically
+    projectedDate.setDate(projectedDate.getDate() + daysNeeded);
+
+    return projectedDate;
+}
 
 function displayFireworks() {
     if (!fireworksDisplayed) {
@@ -936,8 +1015,12 @@ function displayFireworks() {
 
 let fireworksDisplayed = false;
 let previousSignatureCount = 0;
-// Initial fetch and update of total progress data
-updateTotalProgress();
+async function initialFetch() {
+    const historicResponse = await fetch('https://stopkillinggameshistoricdata.montoria.se/historic-data');
+    historicData = await historicResponse.json();
+    updateTotalProgress();
+}
+initialFetch();
 
 
 //Update time left every second
