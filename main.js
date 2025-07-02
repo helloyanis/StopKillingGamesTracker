@@ -86,10 +86,6 @@ function displayCountries(countries, showUpdateMessage = false) {
     const parentDiv = document.getElementById('myDiv');
     parentDiv.innerHTML = ''; // Clear existing content
 
-    const progressClasses = [undefined, 'progress', 'progress-second', 'progress-third', 'progress-fourth', 'progress-fifth'];
-    const maxBarPercentage = progressClasses.length * 100; // largest percentage that can be properly represented by bars
-    const maxBarIndex = progressClasses.length - 1;
-    
     // Fetch all flag URLs
     const flagPromises = countries.map(item => {
         const countryName = countryNames[item.countryCode] || item.countryCode;
@@ -283,33 +279,40 @@ function displayCountries(countries, showUpdateMessage = false) {
             const countryProgressBar = document.createElement('div');
             countryProgressBar.className = 'progress-bar';
 
+            const progressBarFill = document.createElement('div');
+            progressBarFill.className = 'progress';
+            const progressBarSecondFill = document.createElement('div');
+            progressBarSecondFill.className = 'progress-second';
+            const progressBarThirdFill = document.createElement('div');
+            progressBarThirdFill.className = 'progress-third';
+
             // Calculate the width for each layer
             const percentage = item.percentage;
-            const isOverflow = percentage >= maxBarPercentage;
-            const backBarIndex = isOverflow ? maxBarIndex : Math.floor(percentage / 100);
-            const frontBarIndex = isOverflow ? maxBarIndex : backBarIndex + 1;
-            const frontBarWidth = isOverflow ? 0 : percentage % 100;
+            const firstLayerWidth = Math.min(percentage, 100);
+            const secondLayerWidth = Math.min(Math.max(percentage - 100, 0), 100);
+            const thirdLayerWidth = Math.min(Math.max(percentage - 200, 0), 100);
 
-            const progressBarBack = document.createElement('div');
-            if (backBarIndex > 0) {
-                progressBarBack.className = progressClasses[backBarIndex];
-            }
-
-            const progressBarFront = document.createElement('div');
-            progressBarFront.className = progressClasses[frontBarIndex];
-            
-            progressBarBack.style.width = `100%`;
-            progressBarFront.style.width = `${frontBarWidth}%`;
+            progressBarFill.style.width = `${firstLayerWidth}%`;
+            progressBarSecondFill.style.width = `${secondLayerWidth}%`;
+            progressBarThirdFill.style.width = `${thirdLayerWidth}%`;
 
             // Conditionally add the border class
-            if (frontBarWidth > 1) {
-                progressBarFront.classList.add('progress-divider');
+            if (firstLayerWidth > 1) {
+                progressBarFill.classList.add('progress-divider');
             }
+            if (secondLayerWidth > 1) {
+                progressBarSecondFill.classList.add('progress-divider');
+            }
+            if (thirdLayerWidth > 1) {
+                progressBarThirdFill.classList.add('progress-divider');
+            }
+
 
             // Create a span element for the percentage text
             const percentageText = document.createElement('span');
             percentageText.className = 'percentage-text';
             percentageText.textContent = `${percentage.toLocaleString()}%`;
+
 
 
             // Create a new p element for the disclaimer
@@ -319,17 +322,18 @@ function displayCountries(countries, showUpdateMessage = false) {
 
 
             // Append the filled progress bars to the progress bar container
-            countryProgressBar.appendChild(progressBarBack);
-            countryProgressBar.appendChild(progressBarFront);
+            countryProgressBar.appendChild(progressBarFill);
+            countryProgressBar.appendChild(progressBarSecondFill);
+            countryProgressBar.appendChild(progressBarThirdFill);
 
             // Append the percentage text to the progress bar container
             countryProgressBar.appendChild(percentageText);
 
+
+
+
             // Add the correct frame based on the progress
-            if (percentage >= 400) {
-                div.classList.add('diamond-frame');
-            }
-            else if (percentage >= 300) {
+            if (percentage >= 300) {
                 div.classList.add('gold-frame');
             }
             else if (percentage >= 200) {
@@ -362,8 +366,6 @@ function displayCountries(countries, showUpdateMessage = false) {
         });
     });
 }
-
-
 
 // Function to sort countries and update the display
 function sortCountries(order = 'desc', sortBy = 'percentage') {
@@ -426,78 +428,63 @@ document.getElementById('sortPerCapitaDesc').addEventListener('click', () => {
 
 // Function to fetch and update total progress data
 async function updateTotalProgress() {
-    while(true) {
-        try{
-    const response = await fetch('https://eci.ec.europa.eu/045/public/api/report/progression')
-    const data = await  response.json()
+    while (true) {
+        try {
+            const response = await fetch('https://eci.ec.europa.eu/045/public/api/report/progression')
+            const data = await response.json()
             const { signatureCount, goal } = data;
-            const goalReached = signatureCount >= goal;
-            
-            if(goalReached){
+            if (signatureCount >= goal) {
                 displayFireworks();
-                // Show encouragement message when goal is reached
-                const encouragementDiv = document.querySelector('.goal-reached-encouragement');
-                if (encouragementDiv) {
-                    encouragementDiv.style.display = 'block';
-                }
-            } else {
-                // Hide encouragement message if goal is not reached
-                const encouragementDiv = document.querySelector('.goal-reached-encouragement');
-                if (encouragementDiv) {
-                    encouragementDiv.style.display = 'none';
-                }
             }
-            
             // Calculate the percentage towards the goal
             const percentage1 = ((signatureCount / goal) * 100).toFixed(2);
 
-            const percentage2 = (((signatureCount-1000000) / 1000000) * 100).toFixed(2);
+            const percentage2 = (((signatureCount - 1000000) / 1000000) * 100).toFixed(2);
 
             if (previousSignatureCount < signatureCount && previousSignatureCount !== 0) {
                 fetchTodaySignatures();
             }
 
             // Update the total progress div with the calculated values
-            if(document.querySelector('.total-label').innerText != `Total Signatures:`){
+            if (document.querySelector('.total-label').innerText != `Total Signatures:`) {
                 document.querySelector('.total-label').innerText = `Total Signatures:`;
                 document.querySelector('.total-label').classList.remove('loading');
             }
-            if(document.querySelector('.total-count').innerText != `${signatureCount.toLocaleString()}`){
+            if (document.querySelector('.total-count').innerText != `${signatureCount.toLocaleString()}`) {
                 await updateCountUI(signatureCount, previousSignatureCount, document.querySelector('.total-count'));
             }
 
-            if(percentage1 > 100){
-                if(document.querySelector('.percentage-to-goal').innerText != `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`){
+            if (percentage1 > 100) {
+                if (document.querySelector('.percentage-to-goal').innerText != `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`) {
                     document.querySelector('.percentage-to-goal').innerText = `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`;
                 }
 
-                if(document.querySelector('.total-progress').querySelector('.progress').style.width != `100%`){
+                if (document.querySelector('.total-progress').querySelector('.progress').style.width != `100%`) {
                     document.querySelector('.total-progress').querySelector('.progress').style.width = `100%`;
                 }
-                if(document.querySelector('.total-progress').querySelector('.extra-progress').style.width != `${percentage2}%`){
+                if (document.querySelector('.total-progress').querySelector('.extra-progress').style.width != `${percentage2}%`) {
                     document.querySelector('.total-progress').querySelector('.extra-progress').style.width = `${percentage2}%`;
                 }
             }
-            else{
-                if(document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage1.toLocaleString()}%`){
+            else {
+                if (document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage1.toLocaleString()}%`) {
                     document.querySelector('.percentage-to-goal').innerText = `Percentage to Goal: ${percentage1.toLocaleString()}%`;
                 }
 
-                if(document.querySelector('.total-progress').querySelector('.progress').style.width != `${percentage1}%`){
+                if (document.querySelector('.total-progress').querySelector('.progress').style.width != `${percentage1}%`) {
                     document.querySelector('.total-progress').querySelector('.progress').style.width = `${percentage1}%`;
                 }
             }
-            
+
             previousSignatureCount = signatureCount;
-    } catch (error) {
-    console.error('Error fetching total progress:', error);
-}
-}
+        } catch (error) {
+            console.error('Error fetching total progress:', error);
+        }
+    }
 }
 
 let globalScheduleStatus = '';
 let globalProjectedDate = new Date();
-
 function updateTimeLeft(startTime, endTime) {
     const now = new Date();
     const timeLeft = endTime - now;
@@ -505,17 +492,17 @@ function updateTimeLeft(startTime, endTime) {
     const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
     const secondsLeft = Math.floor((timeLeft % (1000 * 60)) / 1000);
-    
+
     document.querySelector('#time-left-text').innerText = `${clockAnim[animIndex]}${daysLeft}d ${hoursLeft}h ${minutesLeft}m ${secondsLeft}s`;
-    if(document.querySelector('.time-left').querySelector('.progress-danger').style.width = `${100 - (timeLeft / (endTime - startTime)) * 100}%`){
+    if (document.querySelector('.time-left').querySelector('.progress-danger').style.width = `${100 - (timeLeft / (endTime - startTime)) * 100}%`) {
         document.querySelector('.time-left').querySelector('.progress-danger').style.width = `${100 - (timeLeft / (endTime - startTime)) * 100}%`;
     }
 
     document.querySelector('.schedule-status').innerText = globalScheduleStatus;
 
-    
-    if(document.querySelector('.daily-signatures-needed').innerText = `We need at least ${Math.ceil((1000000-previousSignatureCount)/daysLeft)} signatures per day on average!`){
-        document.querySelector('.daily-signatures-needed').innerText = `We need at least ${Math.ceil((1000000-previousSignatureCount)/daysLeft)} signatures per day on average!`;
+
+    if (document.querySelector('.daily-signatures-needed').innerText = `We need at least ${Math.ceil((1000000 - previousSignatureCount) / daysLeft)} signatures per day on average!`) {
+        document.querySelector('.daily-signatures-needed').innerText = `We need at least ${Math.ceil((1000000 - previousSignatureCount) / daysLeft)} signatures per day on average!`;
     }
 
     animIndex++;
@@ -523,7 +510,6 @@ function updateTimeLeft(startTime, endTime) {
         animIndex = 0;
     }
 }
-
 let signaturesBeforeToday = 0;
 let historicData
 let prevValueTotal = 0;
@@ -541,7 +527,7 @@ setInterval(() => {
 }, 10 * 60 * 1000); // 10 minutes in milliseconds
 // Function to fetch historical data and calculate today's signatures
 async function fetchTodaySignatures() {
-        try{
+    try {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -572,141 +558,114 @@ async function fetchTodaySignatures() {
         prevValueToday = todaySignatures; // Update the previous value for next comparison
 
         const rate = getYesterdaySignaturesRate();
-  if (rate <= 0) {
-    globalScheduleStatus = 'Cannot compute projection from yesterday’s data.';
-    return;
-  }
-
-  // days until goal at yesterday’s pace:
-  const daysToGo = Math.ceil((1000000 - previousSignatureCount) / rate);
-  const projectedDate = new Date(now.getTime() + daysToGo * 24*60*60*1000);
-
-  globalProjectedDate = projectedDate;
-  globalScheduleStatus = 
-    `At yesterday’s rate (${rate.toLocaleString()}⎯signatures), `
-    + `you’ll hit goal in ${daysToGo} days (by ${projectedDate.toLocaleDateString()}).`;
-        } catch (error) {
-            console.error('Error fetching today\'s signatures:', error);
+        if (rate <= 0) {
+            globalScheduleStatus = 'Cannot compute projection from yesterday’s data.';
+            return;
         }
+
+        // days until goal at yesterday’s pace:
+        const daysToGo = Math.ceil((1000000 - previousSignatureCount) / rate);
+        const projectedDate = new Date(now.getTime() + daysToGo * 24 * 60 * 60 * 1000);
+
+        globalProjectedDate = projectedDate;
+        globalScheduleStatus =
+            `At yesterday’s rate (${rate.toLocaleString()}⎯signatures), `
+            + `you’ll hit goal in ${daysToGo} days (by ${projectedDate.toLocaleDateString()}).`;
+    } catch (error) {
+        console.error('Error fetching today\'s signatures:', error);
+    }
 }
 
 async function updateCountUI(todaySignatures, prev, element) {// Create and show the updated count with animation
     const todayCountElement = element
-                if (prev > 0) {
-                    // Remove any existing content
-                    todayCountElement.innerHTML = '';
-                    
-                    // Create a temporary element to animate out
-                    const oldCount = document.createElement('span');
-                    oldCount.className = 'count-down';
-                    oldCount.textContent = `${prev.toLocaleString()}`;
-                    
-                    // Create a new element to animate in
-                    const newCount = document.createElement('span');
-                    newCount.className = 'count-up';
-                    newCount.textContent = `${todaySignatures.toLocaleString()}`;
-                    
-                    // Add both elements to container
-                    todayCountElement.appendChild(oldCount);
-                    todayCountElement.appendChild(newCount);
-                    
-                    // Trigger the animation after a brief delay
-                    setTimeout(() => {
-                        oldCount.style.transform = 'translateY(-100%)';
-                        oldCount.style.opacity = '0';
-                        newCount.style.transform = 'translateY(0)';
-                        newCount.style.opacity = '1';
-                    }, 10);
-                    
-                    // Clean up after animation completes
-                    setTimeout(() => {
-                        // Replace with a simple text to avoid positioning issues
-                        todayCountElement.innerHTML = '';
-                        const finalElement = document.createElement('span');
-                        finalElement.className = 'count-down'; // Already in correct position
-                        finalElement.textContent = `${todaySignatures.toLocaleString()}`;
-                        todayCountElement.appendChild(finalElement);
-                    }, 600);
-                    //better function, in async
-                    await new Promise(resolve => setTimeout(resolve, 610));
-                } else {
-                    // First load, just set the text
-                    todayCountElement.innerHTML = '';
-                    const textElement = document.createElement('span');
-                    textElement.className = 'count-down';
-                    textElement.textContent = `${todaySignatures.toLocaleString()}`;
-                    todayCountElement.appendChild(textElement);
-                    document.querySelector(".today-label").classList.remove('loading');
-                    document.querySelector(".today-label").textContent = "Today's Signatures:";
-                }
+    if (prev > 0) {
+        // Remove any existing content
+        todayCountElement.innerHTML = '';
 
-                
-                // Create a new element to animate in
-                const newCount = document.createElement('span');
-                newCount.className = 'count-up';
-                newCount.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
-                
-                // Add both elements to container
-                todayCountElement.appendChild(oldCount);
-                todayCountElement.appendChild(newCount);
-                
-                // Trigger the animation after a brief delay
-                setTimeout(() => {
-                    oldCount.style.transform = 'translateY(-100%)';
-                    oldCount.style.opacity = '0';
-                    newCount.style.transform = 'translateY(0)';
-                    newCount.style.opacity = '1';
-                }, 10);
-                
-                // Clean up after animation completes
-                setTimeout(() => {
-                    // Replace with a simple text to avoid positioning issues
-                    todayCountElement.innerHTML = '';
-                    const finalElement = document.createElement('span');
-                    finalElement.className = 'count-down'; // Already in correct position
-                    finalElement.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
-                    todayCountElement.appendChild(finalElement);
-                }, 600);
-            } else {
-                // First load, just set the text
-                todayCountElement.innerHTML = '';
-                const textElement = document.createElement('span');
-                textElement.className = 'count-down';
-                textElement.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
-                todayCountElement.appendChild(textElement);
-            }
+        // Create a temporary element to animate out
+        const oldCount = document.createElement('span');
+        oldCount.className = 'count-down';
+        oldCount.textContent = `${prev.toLocaleString()}`;
+
+        // Create a new element to animate in
+        const newCount = document.createElement('span');
+        newCount.className = 'count-up';
+        newCount.textContent = `${todaySignatures.toLocaleString()}`;
+
+        // Add both elements to container
+        todayCountElement.appendChild(oldCount);
+        todayCountElement.appendChild(newCount);
+
+        // Trigger the animation after a brief delay
+        setTimeout(() => {
+            oldCount.style.transform = 'translateY(-100%)';
+            oldCount.style.opacity = '0';
+            newCount.style.transform = 'translateY(0)';
+            newCount.style.opacity = '1';
+        }, 10);
+
+        // Clean up after animation completes
+        setTimeout(() => {
+            // Replace with a simple text to avoid positioning issues
+            todayCountElement.innerHTML = '';
+            const finalElement = document.createElement('span');
+            finalElement.className = 'count-down'; // Already in correct position
+            finalElement.textContent = `${todaySignatures.toLocaleString()}`;
+            todayCountElement.appendChild(finalElement);
+        }, 600);
+        //better function, in async
+        await new Promise(resolve => setTimeout(resolve, 610));
+    } else {
+        // First load, just set the text
+        todayCountElement.innerHTML = '';
+        const textElement = document.createElement('span');
+        textElement.className = 'count-down';
+        textElement.textContent = `${todaySignatures.toLocaleString()}`;
+        todayCountElement.appendChild(textElement);
+        document.querySelector(".today-label").classList.remove('loading');
+        document.querySelector(".today-label").textContent = "Today's Signatures:";
+    }
+
+    // Add visual indicator based on activity level
+    todayCountElement.classList.remove('high-activity', 'medium-activity');
+    if (todaySignatures > 5000) {
+        todayCountElement.classList.add('high-activity');
+    } else if (todaySignatures > 2000) {
+        todayCountElement.classList.add('medium-activity');
+    }
+}
 
 // Helper: get the totalCount sum for a given date (midnight–midnight)
 function totalForDate(date) {
-  // find the entry whose timestamp is exactly that date (or closest before)
-  const entry = historicData
-    .filter(e => {
-      const d = new Date(e.timestamp);
-      return d.getFullYear() === date.getFullYear()
-          && d.getMonth() === date.getMonth()
-          && d.getDate() === date.getDate();
-    })
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) [0];
+    // find the entry whose timestamp is exactly that date (or closest before)
+    const entry = historicData
+        .filter(e => {
+            const d = new Date(e.timestamp);
+            return d.getFullYear() === date.getFullYear()
+                && d.getMonth() === date.getMonth()
+                && d.getDate() === date.getDate();
+        })
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
 
-  if (!entry) return null;
-  return entry.data.reduce((sum, c) => sum + c.totalCount, 0);
+    if (!entry) return null;
+    return entry.data.reduce((sum, c) => sum + c.totalCount, 0);
 }
 
 // New function to compute yesterday’s rate
 function getYesterdaySignaturesRate() {
-  const now = new Date();
-  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-  const dayBefore = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+    const now = new Date();
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const dayBefore = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
 
-  const totalDayBefore = totalForDate(dayBefore);
-  const totalYesterday   = totalForDate(yesterday);
+    const totalDayBefore = totalForDate(dayBefore);
+    const totalYesterday = totalForDate(yesterday);
 
-  if (totalDayBefore == null || totalYesterday == null) {
-    console.warn('Not enough historical data for yesterday rate');
-    return null;
-  }
+    if (totalDayBefore == null || totalYesterday == null) {
+        console.warn('Not enough historical data for yesterday rate');
+        return null;
+    }
 
-  return totalYesterday - totalDayBefore;
+    return totalYesterday - totalDayBefore;
 }
 
 // Fetch and display country data
@@ -723,17 +682,17 @@ fetch('https://stopkillinggamesdata.montoria.se/')
     })
     .catch(error => console.error('Error:', error));
 
-    /**
- * Calculates the projected date to reach a signature goal.
- *
- * @param {Date} startDate The date from which to start projecting (e.g., today's date or yesterday's date).
- * @param {number} currentSignatures The current total number of signatures.
- * @param {number} targetGoal The total number of signatures to reach.
- * @param {number} dailyVelocity The average number of signatures collected per day.
- * @returns {Date | null} The projected Date object, or null if there's an error in inputs.
- */
+/**
+* Calculates the projected date to reach a signature goal.
+*
+* @param {Date} startDate The date from which to start projecting (e.g., today's date or yesterday's date).
+* @param {number} currentSignatures The current total number of signatures.
+* @param {number} targetGoal The total number of signatures to reach.
+* @param {number} dailyVelocity The average number of signatures collected per day.
+* @returns {Date | null} The projected Date object, or null if there's an error in inputs.
+*/
 function getProjectedFinalDate(startDate, currentSignatures, targetGoal, dailyVelocity) {
-    if(currentSignatures >= targetGoal) {
+    if (currentSignatures >= targetGoal) {
         console.warn("Current signatures already meet or exceed the target goal.");
         return null; // No projection needed if goal is already met
     }
@@ -775,81 +734,37 @@ function displayFireworks() {
     if (!fireworksDisplayed) {
         fireworksDisplayed = true;
         const duration = 5 * 1000,
-        animationEnd = Date.now() + duration,
-        defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+            animationEnd = Date.now() + duration,
+            defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
 
         function randomInRange(min, max) {
-        return Math.random() * (max - min) + min;
+            return Math.random() * (max - min) + min;
         }
 
-        const interval = setInterval(function() {
-        const timeLeft = animationEnd - Date.now();
+        const interval = setInterval(function () {
+            const timeLeft = animationEnd - Date.now();
 
-        if (timeLeft <= 0) {
-            return clearInterval(interval);
-        }
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
 
-        const particleCount = 50 * (timeLeft / duration);
+            const particleCount = 50 * (timeLeft / duration);
 
-        // since particles fall down, start a bit higher than random
-        confetti(
-            Object.assign({}, defaults, {
-            particleCount,
-            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-            })
-        );
-        confetti(
-            Object.assign({}, defaults, {
-            particleCount,
-            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-            })
-        );
+            // since particles fall down, start a bit higher than random
+            confetti(
+                Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+                })
+            );
+            confetti(
+                Object.assign({}, defaults, {
+                    particleCount,
+                    origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+                })
+            );
         }, 250);
     }
-}
-
-/**
- * Calculates the projected date to reach a signature goal.
- *
- * @param {Date} startDate The date from which to start projecting (e.g., today's date or yesterday's date).
- * @param {number} currentSignatures The current total number of signatures.
- * @param {number} targetGoal The total number of signatures to reach.
- * @param {number} dailyVelocity The average number of signatures collected per day.
- * @returns {Date | null} The projected Date object, or null if there's an error in inputs.
- */
-function getProjectedFinalDate(startDate, currentSignatures, targetGoal, dailyVelocity) {
-    // Input validation
-    if (!(startDate instanceof Date) || isNaN(startDate.getTime())) { // Check if it's a valid Date object
-        console.error("Error: 'startDate' must be a valid Date object.");
-        return null;
-    }
-    if (typeof currentSignatures !== 'number' || currentSignatures < 0) {
-        console.error("Error: 'currentSignatures' must be a non-negative number.");
-        return null;
-    }
-    if (typeof targetGoal !== 'number' || targetGoal <= currentSignatures) {
-        console.error("Error: 'targetGoal' must be a number greater than 'currentSignatures'.");
-        return null;
-    }
-    if (typeof dailyVelocity !== 'number' || dailyVelocity <= 0) {
-        console.error("Error: 'dailyVelocity' must be a positive number.");
-        return null;
-    }
-
-    // 1. Calculate signatures remaining
-    const signaturesRemaining = targetGoal - currentSignatures;
-
-    // 2. Calculate the number of days needed (round up to ensure goal is met)
-    const daysNeeded = Math.ceil(signaturesRemaining / dailyVelocity);
-
-    // 3. Create a new Date object from the start date to avoid modifying the original
-    const projectedDate = new Date(startDate);
-
-    // 4. Add the calculated days to the new date object
-    // setDate() handles month and year rollovers automatically
-    projectedDate.setDate(projectedDate.getDate() + daysNeeded);
-
-    return projectedDate;
 }
 
 let fireworksDisplayed = false;
@@ -865,6 +780,6 @@ initialFetch();
 //Update time left every second
 const startTime = new Date('31 jul 2024 GMT+0200');
 const endTime = new Date('31 jul 2025 GMT+0200');
-const clockAnim=["🕛","🕐","🕑","🕒","🕓","🕔","🕕","🕖","🕗","🕘","🕙","🕚"];
-let animIndex=0;
+const clockAnim = ["🕛", "🕐", "🕑", "🕒", "🕓", "🕔", "🕕", "🕖", "🕗", "🕘", "🕙", "🕚"];
+let animIndex = 0;
 setInterval(() => updateTimeLeft(startTime, endTime), 1000);
