@@ -437,9 +437,7 @@ async function updateTotalProgress() {
                 displayFireworks();
             }
             // Calculate the percentage towards the goal
-            const percentage1 = ((signatureCount / goal) * 100).toFixed(2);
-
-            const percentage2 = (((signatureCount - 1000000) / 1000000) * 100).toFixed(2);
+            const percentage = ((signatureCount / goal) * 100).toFixed(2);
 
             if (previousSignatureCount < signatureCount && previousSignatureCount !== 0) {
                 fetchTodaySignatures();
@@ -454,25 +452,18 @@ async function updateTotalProgress() {
                 await updateCountUI(signatureCount, previousSignatureCount, document.querySelector('.total-count'));
             }
 
-            if (percentage1 > 100) {
-                if (document.querySelector('.percentage-to-goal').innerText != `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`) {
-                    document.querySelector('.percentage-to-goal').innerText = `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`;
-                }
+            if (document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage.toLocaleString()}%`) {
+                document.querySelector('.percentage-to-goal').innerText = `Percentage to Goal: ${percentage.toLocaleString()}%`;
+            }
 
+            if (percentage > 100) {
                 if (document.querySelector('.total-progress').querySelector('.progress').style.width != `100%`) {
                     document.querySelector('.total-progress').querySelector('.progress').style.width = `100%`;
                 }
-                if (document.querySelector('.total-progress').querySelector('.extra-progress').style.width != `${percentage2}%`) {
-                    document.querySelector('.total-progress').querySelector('.extra-progress').style.width = `${percentage2}%`;
-                }
             }
             else {
-                if (document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage1.toLocaleString()}%`) {
-                    document.querySelector('.percentage-to-goal').innerText = `Percentage to Goal: ${percentage1.toLocaleString()}%`;
-                }
-
-                if (document.querySelector('.total-progress').querySelector('.progress').style.width != `${percentage1}%`) {
-                    document.querySelector('.total-progress').querySelector('.progress').style.width = `${percentage1}%`;
+                if (document.querySelector('.total-progress').querySelector('.progress').style.width != `${percentage}%`) {
+                    document.querySelector('.total-progress').querySelector('.progress').style.width = `${percentage}%`;
                 }
             }
 

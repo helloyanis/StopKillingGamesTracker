@@ -139,18 +139,6 @@ body {
     }
 }
 
-.extra-progress {
-    height: 100%;
-    width: 0;
-    position: absolute;
-    top: 0;
-    left: 0;
-    background: repeating-linear-gradient(to right,#1abcfe,#a259ff,#000,#926e64,#ffb6e6,#a3deff,#fff,red,#ffe462,#0acf83,#1abcfe);
-    background-size: 200% 100%;
-    animation: progress 3s linear infinite;
-    z-index: 10;
-}
-
 /* Progress bar fill for the second 100% */
 .progress-second {
     height: 100%;
