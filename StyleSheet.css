@@ -172,6 +172,27 @@ body {
     left: 0;
 }
 
+/* Progress bar fill for the fourth 100% */
+.progress-fourth {
+    height: 100%;
+    background-color: #00834c;
+    width: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Progress bar fill for the fifth 100% */
+.progress-fifth {
+    height: 100%;
+    background-color: #239fa8;
+    ;
+    width: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
 .progress-divider {
     border-right: 1px solid #26292f;
 }
@@ -345,6 +366,47 @@ body {
     font-weight: bold;
 }
 
+/* Goal reached encouragement message */
+.goal-reached-encouragement {
+    text-align: center;
+    color: white;
+    background: linear-gradient(135deg, #4caf50, #8bc34a);
+    border: 2px solid #388E3C;
+    border-radius: 15px;
+    padding: 20px 25px;
+    margin: 20px auto;
+    max-width: 600px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    animation: goalPulse 3s ease-in-out infinite;
+}
+
+.goal-reached-encouragement p {
+    margin: 8px 0;
+    font-size: 1.1em;
+    line-height: 1.4;
+}
+
+.goal-reached-encouragement p:first-child {
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+@keyframes goalPulse {
+    0%, 100% {
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        box-shadow: 0 8px 20px rgba(76, 175, 80, 0.4);
+    }
+}
+
+@media (prefers-reduced-motion) {
+    .goal-reached-encouragement {
+        animation: none;
+    }
+}
+
 /* Country flag style */
 .country-flag {
     display: block;
@@ -465,6 +527,11 @@ body {
     max-width: 500px;
     margin-top: 20px;
     border-radius: 10px;
+}
+
+.diamond-frame {
+    border: 0px solid #ccffff;
+    box-shadow: 0 0 10px #ccffff;
 }
 
 .gold-frame {

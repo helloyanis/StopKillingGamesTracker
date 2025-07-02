@@ -86,6 +86,10 @@ function displayCountries(countries, showUpdateMessage = false) {
     const parentDiv = document.getElementById('myDiv');
     parentDiv.innerHTML = ''; // Clear existing content
 
+    const progressClasses = [undefined, 'progress', 'progress-second', 'progress-third', 'progress-fourth', 'progress-fifth'];
+    const maxBarPercentage = progressClasses.length * 100; // largest percentage that can be properly represented by bars
+    const maxBarIndex = progressClasses.length - 1;
+    
     // Fetch all flag URLs
     const flagPromises = countries.map(item => {
         const countryName = countryNames[item.countryCode] || item.countryCode;
@@ -279,40 +283,33 @@ function displayCountries(countries, showUpdateMessage = false) {
             const countryProgressBar = document.createElement('div');
             countryProgressBar.className = 'progress-bar';
 
-            const progressBarFill = document.createElement('div');
-            progressBarFill.className = 'progress';
-            const progressBarSecondFill = document.createElement('div');
-            progressBarSecondFill.className = 'progress-second';
-            const progressBarThirdFill = document.createElement('div');
-            progressBarThirdFill.className = 'progress-third';
-
             // Calculate the width for each layer
             const percentage = item.percentage;
-            const firstLayerWidth = Math.min(percentage, 100);
-            const secondLayerWidth = Math.min(Math.max(percentage - 100, 0), 100);
-            const thirdLayerWidth = Math.min(Math.max(percentage - 200, 0), 100);
+            const isOverflow = percentage >= maxBarPercentage;
+            const backBarIndex = isOverflow ? maxBarIndex : Math.floor(percentage / 100);
+            const frontBarIndex = isOverflow ? maxBarIndex : backBarIndex + 1;
+            const frontBarWidth = isOverflow ? 0 : percentage % 100;
 
-            progressBarFill.style.width = `${firstLayerWidth}%`;
-            progressBarSecondFill.style.width = `${secondLayerWidth}%`;
-            progressBarThirdFill.style.width = `${thirdLayerWidth}%`;
+            const progressBarBack = document.createElement('div');
+            if (backBarIndex > 0) {
+                progressBarBack.className = progressClasses[backBarIndex];
+            }
+
+            const progressBarFront = document.createElement('div');
+            progressBarFront.className = progressClasses[frontBarIndex];
+            
+            progressBarBack.style.width = `100%`;
+            progressBarFront.style.width = `${frontBarWidth}%`;
 
             // Conditionally add the border class
-            if (firstLayerWidth > 1) {
-                progressBarFill.classList.add('progress-divider');
+            if (frontBarWidth > 1) {
+                progressBarFront.classList.add('progress-divider');
             }
-            if (secondLayerWidth > 1) {
-                progressBarSecondFill.classList.add('progress-divider');
-            }
-            if (thirdLayerWidth > 1) {
-                progressBarThirdFill.classList.add('progress-divider');
-            }
-
 
             // Create a span element for the percentage text
             const percentageText = document.createElement('span');
             percentageText.className = 'percentage-text';
             percentageText.textContent = `${percentage.toLocaleString()}%`;
-
 
 
             // Create a new p element for the disclaimer
@@ -322,18 +319,17 @@ function displayCountries(countries, showUpdateMessage = false) {
 
 
             // Append the filled progress bars to the progress bar container
-            countryProgressBar.appendChild(progressBarFill);
-            countryProgressBar.appendChild(progressBarSecondFill);
-            countryProgressBar.appendChild(progressBarThirdFill);
+            countryProgressBar.appendChild(progressBarBack);
+            countryProgressBar.appendChild(progressBarFront);
 
             // Append the percentage text to the progress bar container
             countryProgressBar.appendChild(percentageText);
 
-
-
-
             // Add the correct frame based on the progress
-            if (percentage >= 300) {
+            if (percentage >= 400) {
+                div.classList.add('diamond-frame');
+            }
+            else if (percentage >= 300) {
                 div.classList.add('gold-frame');
             }
             else if (percentage >= 200) {
@@ -367,251 +363,7 @@ function displayCountries(countries, showUpdateMessage = false) {
     });
 }
 
-// Function to display countries with signature methods
 
-/*
-function displayCountriesWithMethods(countries) {
-    const parentDiv = document.getElementById('myDiv');
-    parentDiv.innerHTML = ''; // Clear existing content
-
-    // Fetch all flag URLs
-    const flagPromises = countries.map(item => {
-        const countryName = countryNames[item.countryCode] || item.countryCode;
-        return fetchFlagUrl(countryName).then(flagUrl => ({
-            ...item,
-            flagUrl
-        }));
-    });
-
-    // Wait for all flag URLs to be fetched
-    Promise.all(flagPromises).then(countriesWithFlags => {
-        countriesWithFlags.forEach(item => {
-            // Create a new div element for each item
-            const div = document.createElement('div');
-            div.className = "country-data";
-
-            // Calculate signatures per capita
-            const population = countryPopulations[item.countryCode];
-            const signaturesPerCapita = population ? (item.totalCount / population) * 100 : 0;
-
-
-            // Create an img element for the flag if available
-            if (item.flagUrl) {
-                const flagImg = document.createElement('img');
-                flagImg.className = 'country-flag';
-                flagImg.src = item.flagUrl;
-                flagImg.alt = `${countryNames[item.countryCode]} Flag`;
-
-                switch (item.countryCode) {
-                    case 'fi':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'se':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'nl':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'dk':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'de':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'ie':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'be':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'pl':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'lt':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'ee':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'pt':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'ro':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'cz':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'at':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'hr':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'fr':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'es':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'hu':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'sk':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'lv':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'si':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'bg':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'gr':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'it':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'lu':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecifirstoption';
-                        });
-                        break;
-                    case 'mt':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    case 'cy':
-                        flagImg.addEventListener('click', () => {
-                            window.location.href = 'https://www.stopkillinggames.com/ecisecondoption';
-                        });
-                        break;
-                    default: break;
-                }
-                div.appendChild(flagImg);
-            }
-
-            // Create a new p element for the country name
-            const countryNameElement = document.createElement('p');
-            countryNameElement.className = 'country-name';
-            countryNameElement.textContent = `${countryNames[item.countryCode] || item.countryCode}`;
-
-            // Create a new p element for the total count
-            const totalCountElement = document.createElement('p');
-            totalCountElement.className = 'total-count';
-            totalCountElement.textContent = `Total Count: ${item.totalCount.toLocaleString()}`;
-
-            // Create a new p element for the treshold
-            const tresholdElement = document.createElement('p');
-            tresholdElement.className = 'treshold';
-            tresholdElement.textContent = `Threshold: ${item.treshold.toLocaleString()}`;
-
-            // Create a new p element for the form count
-            const formCountElement = document.createElement('p');
-            formCountElement.className = 'form-count';
-            formCountElement.textContent = `Form Count: ${item.formCount.toLocaleString()}`;
-
-            // Create a new p element for the eid count
-            const eidCountElement = document.createElement('p');
-            eidCountElement.className = 'eid-count';
-            eidCountElement.textContent = `EID Count: ${item.eidCount.toLocaleString()}`;
-
-            // Create a progress bar for the country
-            const countryProgressBar = document.createElement('div');
-            countryProgressBar.className = 'progress-bar';
-            const progressBarFill = document.createElement('div');
-            progressBarFill.className = 'progress';
-            progressBarFill.style.width = `${item.percentage}%`;
-
-
-            const signaturesPerCapitaElement = document.createElement('p');
-            signaturesPerCapitaElement.className = 'signatures-per-capita';
-            signaturesPerCapitaElement.textContent = `Signatures/Capita: ${signaturesPerCapita.toFixed(2)}%`;
-
-
-            // Create a span element for the percentage text
-            const percentageText = document.createElement('span');
-            percentageText.className = 'percentage-text';
-            percentageText.textContent = `${item.percentage.toLocaleString()}%`;
-
-            // Append the percentage text to the progress bar container
-            countryProgressBar.appendChild(percentageText);
-
-            // Append the filled progress bar to the progress bar container
-            countryProgressBar.appendChild(progressBarFill);
-
-            // Change color to a darker shade of green if percentage is 100%
-            if (item.percentage >= 100) {
-                progressBarFill.style.backgroundColor = '#388E3C';
-                div.classList.add('golden-frame');
-            }
-
-            // Append the country name, total count, percentage, treshold, form count, eid count, and progress bar to the main div
-            div.appendChild(countryNameElement);
-            div.appendChild(totalCountElement);
-            div.appendChild(tresholdElement);
-            div.appendChild(formCountElement);
-            div.appendChild(eidCountElement);
-            div.appendChild(signaturesPerCapitaElement);
-            div.appendChild(countryProgressBar);
-
-            // Append the new div element to the parent div
-            parentDiv.appendChild(div);
-        });
-    });
-} */
 
 // Function to sort countries and update the display
 function sortCountries(order = 'desc', sortBy = 'percentage') {
@@ -679,9 +431,23 @@ async function updateTotalProgress() {
     const response = await fetch('https://eci.ec.europa.eu/045/public/api/report/progression')
     const data = await  response.json()
             const { signatureCount, goal } = data;
-            if(signatureCount >= goal){
+            const goalReached = signatureCount >= goal;
+            
+            if(goalReached){
                 displayFireworks();
+                // Show encouragement message when goal is reached
+                const encouragementDiv = document.querySelector('.goal-reached-encouragement');
+                if (encouragementDiv) {
+                    encouragementDiv.style.display = 'block';
+                }
+            } else {
+                // Hide encouragement message if goal is not reached
+                const encouragementDiv = document.querySelector('.goal-reached-encouragement');
+                if (encouragementDiv) {
+                    encouragementDiv.style.display = 'none';
+                }
             }
+            
             // Calculate the percentage towards the goal
             const percentage1 = ((signatureCount / goal) * 100).toFixed(2);
 
@@ -731,6 +497,7 @@ async function updateTotalProgress() {
 
 let globalScheduleStatus = '';
 let globalProjectedDate = new Date();
+
 function updateTimeLeft(startTime, endTime) {
     const now = new Date();
     const timeLeft = endTime - now;
@@ -738,14 +505,14 @@ function updateTimeLeft(startTime, endTime) {
     const hoursLeft = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
     const secondsLeft = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
+    
     document.querySelector('#time-left-text').innerText = `${clockAnim[animIndex]}${daysLeft}d ${hoursLeft}h ${minutesLeft}m ${secondsLeft}s`;
     if(document.querySelector('.time-left').querySelector('.progress-danger').style.width = `${100 - (timeLeft / (endTime - startTime)) * 100}%`){
         document.querySelector('.time-left').querySelector('.progress-danger').style.width = `${100 - (timeLeft / (endTime - startTime)) * 100}%`;
     }
 
     document.querySelector('.schedule-status').innerText = globalScheduleStatus;
-    
+
     
     if(document.querySelector('.daily-signatures-needed').innerText = `We need at least ${Math.ceil((1000000-previousSignatureCount)/daysLeft)} signatures per day on average!`){
         document.querySelector('.daily-signatures-needed').innerText = `We need at least ${Math.ceil((1000000-previousSignatureCount)/daysLeft)} signatures per day on average!`;
@@ -756,6 +523,7 @@ function updateTimeLeft(startTime, endTime) {
         animIndex = 0;
     }
 }
+
 let signaturesBeforeToday = 0;
 let historicData
 let prevValueTotal = 0;
@@ -871,14 +639,41 @@ async function updateCountUI(todaySignatures, prev, element) {// Create and show
                     document.querySelector(".today-label").classList.remove('loading');
                     document.querySelector(".today-label").textContent = "Today's Signatures:";
                 }
+
                 
-                // Add visual indicator based on activity level
-                todayCountElement.classList.remove('high-activity', 'medium-activity');
-                if (todaySignatures > 5000) {
-                    todayCountElement.classList.add('high-activity');
-                } else if (todaySignatures > 2000) {
-                    todayCountElement.classList.add('medium-activity');
-                }
+                // Create a new element to animate in
+                const newCount = document.createElement('span');
+                newCount.className = 'count-up';
+                newCount.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
+                
+                // Add both elements to container
+                todayCountElement.appendChild(oldCount);
+                todayCountElement.appendChild(newCount);
+                
+                // Trigger the animation after a brief delay
+                setTimeout(() => {
+                    oldCount.style.transform = 'translateY(-100%)';
+                    oldCount.style.opacity = '0';
+                    newCount.style.transform = 'translateY(0)';
+                    newCount.style.opacity = '1';
+                }, 10);
+                
+                // Clean up after animation completes
+                setTimeout(() => {
+                    // Replace with a simple text to avoid positioning issues
+                    todayCountElement.innerHTML = '';
+                    const finalElement = document.createElement('span');
+                    finalElement.className = 'count-down'; // Already in correct position
+                    finalElement.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
+                    todayCountElement.appendChild(finalElement);
+                }, 600);
+            } else {
+                // First load, just set the text
+                todayCountElement.innerHTML = '';
+                const textElement = document.createElement('span');
+                textElement.className = 'count-down';
+                textElement.textContent = `Signatures today: +${todaySignatures.toLocaleString()}`;
+                todayCountElement.appendChild(textElement);
             }
 
 // Helper: get the totalCount sum for a given date (midnight–midnight)
@@ -1011,6 +806,50 @@ function displayFireworks() {
         );
         }, 250);
     }
+}
+
+/**
+ * Calculates the projected date to reach a signature goal.
+ *
+ * @param {Date} startDate The date from which to start projecting (e.g., today's date or yesterday's date).
+ * @param {number} currentSignatures The current total number of signatures.
+ * @param {number} targetGoal The total number of signatures to reach.
+ * @param {number} dailyVelocity The average number of signatures collected per day.
+ * @returns {Date | null} The projected Date object, or null if there's an error in inputs.
+ */
+function getProjectedFinalDate(startDate, currentSignatures, targetGoal, dailyVelocity) {
+    // Input validation
+    if (!(startDate instanceof Date) || isNaN(startDate.getTime())) { // Check if it's a valid Date object
+        console.error("Error: 'startDate' must be a valid Date object.");
+        return null;
+    }
+    if (typeof currentSignatures !== 'number' || currentSignatures < 0) {
+        console.error("Error: 'currentSignatures' must be a non-negative number.");
+        return null;
+    }
+    if (typeof targetGoal !== 'number' || targetGoal <= currentSignatures) {
+        console.error("Error: 'targetGoal' must be a number greater than 'currentSignatures'.");
+        return null;
+    }
+    if (typeof dailyVelocity !== 'number' || dailyVelocity <= 0) {
+        console.error("Error: 'dailyVelocity' must be a positive number.");
+        return null;
+    }
+
+    // 1. Calculate signatures remaining
+    const signaturesRemaining = targetGoal - currentSignatures;
+
+    // 2. Calculate the number of days needed (round up to ensure goal is met)
+    const daysNeeded = Math.ceil(signaturesRemaining / dailyVelocity);
+
+    // 3. Create a new Date object from the start date to avoid modifying the original
+    const projectedDate = new Date(startDate);
+
+    // 4. Add the calculated days to the new date object
+    // setDate() handles month and year rollovers automatically
+    projectedDate.setDate(projectedDate.getDate() + daysNeeded);
+
+    return projectedDate;
 }
 
 let fireworksDisplayed = false;
