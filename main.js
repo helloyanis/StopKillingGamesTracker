@@ -479,6 +479,9 @@ async function updateTotalProgress() {
             previousSignatureCount = signatureCount;
         } catch (error) {
             console.error('Error fetching total progress:', error);
+        }finally {
+            // Wait for 500ms
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
     }
 }
