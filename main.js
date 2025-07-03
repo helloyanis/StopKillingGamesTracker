@@ -426,12 +426,16 @@ document.getElementById('sortPerCapitaDesc').addEventListener('click', () => {
     sortCountries('desc', 'perCapita');
 });
 
+let start, msSpent = 0;
+
 // Function to fetch and update total progress data
 async function updateTotalProgress() {
     while (true) {
         try {
+            start = Date.now();
             const response = await fetch('https://eci.ec.europa.eu/045/public/api/report/progression')
             const data = await response.json()
+            msSpent = (Date.now() - start) 
             const { signatureCount, goal } = data;
             if (signatureCount >= goal) {
                 displayFireworks();
@@ -480,7 +484,7 @@ async function updateTotalProgress() {
             console.error('Error fetching total progress:', error);
         }finally {
             // Wait for 500ms
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, msSpent*2));
         }
     }
 }
