@@ -454,11 +454,14 @@ async function updateTotalProgress() {
                 await updateCountUI(signatureCount, previousSignatureCount, document.querySelector('.total-count'));
             }
 
-            if (percentage1 > 100) {
-                if (document.querySelector('.percentage-to-goal').innerText != `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`) {
-                    document.querySelector('.percentage-to-goal').innerText = `We reached ${percentage1.toLocaleString()}% of the goal!! But more signatures are welcome, because submissions with mistakes are not counted. Let's push to 1,2M signatures!`;
-                }
+            if (document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage1.toLocaleString()}%`) {
+                document.querySelector('.percentage-to-goal').innerText = `Percentage to Goal: ${percentage1.toLocaleString()}%`;
+                document.title = `${percentage1.toLocaleString()}% - Stop Killing Games Tracker`;
+            }
 
+            if (percentage1 >= 100) {
+
+                document.querySelector('.goal-reached-encouragement').removeAttribute('style');
                 if (document.querySelector('.total-progress').querySelector('.progress').style.width != `100%`) {
                     document.querySelector('.total-progress').querySelector('.progress').style.width = `100%`;
                 }
@@ -467,10 +470,6 @@ async function updateTotalProgress() {
                 }
             }
             else {
-                if (document.querySelector('.percentage-to-goal').innerText != `Percentage to Goal: ${percentage1.toLocaleString()}%`) {
-                    document.querySelector('.percentage-to-goal').innerText = `Percentage to Goal: ${percentage1.toLocaleString()}%`;
-                }
-
                 if (document.querySelector('.total-progress').querySelector('.progress').style.width != `${percentage1}%`) {
                     document.querySelector('.total-progress').querySelector('.progress').style.width = `${percentage1}%`;
                 }
